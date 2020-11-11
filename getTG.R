@@ -22,6 +22,11 @@ create_phenoData <- function(species=c("Human","Rat"), verbose = TRUE){
   #load master phenoData file from TG-GATEs
   #Master phenoData file from TG-GATEs: #14 from https://dbarchive.biosciencedbc.jp/en/open-tggates/download.html
   all_attribute <- read.csv("/pfs/getTGGATE/Open-tggates_AllAttribute.tsv", sep = "\t")
+  all_attribute$SPECIES <- gsub("Rat", "R.norvegicus", all_attribute$SPECIES)
+  all_attribute[grep("TNF", all_attribute[,8], useBytes = TRUE),8] <- "TNFa"
+  all_attribute[grepl("\x83\xcag/kg", all_attribute[,20], useBytes = TRUE, fixed = T),20] <- "µg/kg"
+  all_attribute[grepl("\x83\xcag/mL", all_attribute[,20], useBytes = TRUE, fixed = T),20] <- "µg/mL"
+  all_attribute[grepl("\x83\xcaM", all_attribute[,20], useBytes = TRUE, fixed = T),20] <- "µM"
   
   #all_attribute_old$SPECIES <- gsub("Rat", "R.norvegicus", all_attribute_old$SPECIES)
   #saveRDS(all_attribute_old, "../data/TG/Open-tggates_AllAttribute.rds")
