@@ -207,7 +207,7 @@ create_featureData <- function(species=c("Human","Rat"), eset, verbose = TRUE){
   }
   CELgenes <- rownames(eset@assayData$exprs)
   
-  ensembl<-useMart("ensembl", dataset = ensembl_data, host="uswest.ensembl.org",ensemblRedirect = FALSE)
+  ensembl<-useMart("ensembl", dataset = ensembl_data, host="useast.ensembl.org",ensemblRedirect = FALSE)
   results <- getBM(attributes=c("external_gene_name","ensembl_gene_id","gene_biotype","entrezgene_id","external_transcript_name","ensembl_transcript_id"), filters = "ensembl_gene_id",values=gsub("_at","",CELgenes),mart=ensembl)
   uniqueBiomaRt<-results[!duplicated(results$ensembl_gene_id),]
   names(uniqueBiomaRt)<-c("gene_name", "gene_id", "gene_biotype", "EntrezGene.ID", "transcript_name", "transcript_id")
