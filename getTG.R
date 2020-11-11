@@ -412,7 +412,7 @@ getTGGATEs <- function(species=c("Human","Rat"),
   fData(eset) <- fData(eset)[sort(rownames(fData(eset))),]
   stopifnot(all(rownames(fData(eset)) == rownames(exprs(eset))))
   stopifnot(all(rownames(pData(eset)) == colnames(exprs(eset))))
-  saveRDS(eset, "../data/eset_processsed.rds")
+  saveRDS(eset, "/pfs/out/eset_processsed.rds")
   if (verbose) {message("Creating summarized experiment object...")}
       
     #new_SE_TG <-  methods::as(eset, Class ="SummarizedExperiment")
