@@ -9,6 +9,7 @@ library(xml2)
 library(biomaRt)
 library(abind)
 library(SummarizedExperiment)
+library(biocompute)
 
 args = commandArgs(trailingOnly=TRUE)
 
