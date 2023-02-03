@@ -14,7 +14,6 @@ rule get_tset:
         prefix + "processed/eset_Rat_3276.rds",
         prefix + "data/Open-tggates_AllAttribute.tsv",
         prefix + "data/nar-02356-data-e-2014-File006.xlsx",
-        prefix + "data/conversions_gentamicin.rds",
         prefix + "data/conversions_gentamicin.rds"
     output:
         prefix + "TGGATES_ratldh.rds"
@@ -37,8 +36,22 @@ rule process_data:
 
 rule download_data:
     output:
-        prefix + "download/TGGATES_rat_CEL.tar.gz"
+        prefix + "download/TGGATES_rat_CEL.tar.gz",
+        prefix + "data/Open-tggates_AllAttribute.tsv",
+        prefix + "data/nar-02356-data-e-2014-File006.xlsx",
+        prefix + "data/conversions_gentamicin.rds",
+        prefix + "data/rat_cel.csv"
     shell:
         """
+        wget 'https://github.com/BHKLAB-DataProcessing/getTGGATE/raw/main/data/Open-tggates_AllAttribute.tsv' \
+            -O {prefix}data/Open-tggates_AllAttribute.tsv
+        wget 'https://github.com/BHKLAB-DataProcessing/getTGGATE/raw/main/data/conversions_gentamicin.rds' \
+            -O {prefix}data/conversions_gentamicin.rds
+        wget 'https://github.com/BHKLAB-DataProcessing/getTGGATE/raw/main/data/drugswithids.csv' \
+            -O {prefix}data/drugswithids.csv
+        wget 'https://github.com/BHKLAB-DataProcessing/getTGGATE/raw/main/data/nar-02356-data-e-2014-File006.xlsx' \
+            -O {prefix}data/nar-02356-data-e-2014-File006.xlsx
+        wget 'https://github.com/BHKLAB-DataProcessing/getTGGATE/raw/main/data/rat_cel.csv' \
+            -O {prefix}data/rat_cel.csv
         Rscript {prefix}scripts/downloadTGGATEarray_rat.R {prefix}download
         """

@@ -14,7 +14,6 @@ rule get_tset:
         prefix + "processed/eset_Human_2382.rds",
         prefix + "data/Open-tggates_AllAttribute.tsv",
         prefix + "data/nar-02356-data-e-2014-File006.xlsx",
-        prefix + "data/conversions_gentamicin.rds",
         prefix + "data/conversions_gentamicin.rds"
     output:
         prefix + "TGGATES_humanldh.rds"
@@ -36,8 +35,19 @@ rule process_data:
 
 rule download_data:
     output:
-        prefix + "download/TGGATES_human_CEL.tar.gz"
+        prefix + "download/TGGATES_human_CEL.tar.gz",
+        prefix + "data/Open-tggates_AllAttribute.tsv",
+        prefix + "data/nar-02356-data-e-2014-File006.xlsx",
+        prefix + "data/conversions_gentamicin.rds"
     shell:
         """
+        wget 'https://github.com/BHKLAB-DataProcessing/getTGGATE/raw/main/data/Open-tggates_AllAttribute.tsv' \
+            -O {prefix}data/Open-tggates_AllAttribute.tsv
+        wget 'https://github.com/BHKLAB-DataProcessing/getTGGATE/raw/main/data/conversions_gentamicin.rds' \
+            -O {prefix}data/conversions_gentamicin.rds
+        wget 'https://github.com/BHKLAB-DataProcessing/getTGGATE/raw/main/data/drugswithids.csv' \
+            -O {prefix}data/drugswithids.csv
+        wget 'https://github.com/BHKLAB-DataProcessing/getTGGATE/raw/main/data/nar-02356-data-e-2014-File006.xlsx' \
+            -O {prefix}data/nar-02356-data-e-2014-File006.xlsx
         Rscript {prefix}scripts/downloadTGGATEarray_human.R {prefix}download
         """
