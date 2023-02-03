@@ -171,3 +171,4 @@ dmypy.json
 .snakemake
 tmp
 download
+.DS_Store
