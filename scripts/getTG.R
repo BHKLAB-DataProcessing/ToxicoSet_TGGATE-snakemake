@@ -9,12 +9,21 @@ library(xml2)
 library(biomaRt)
 library(abind)
 library(SummarizedExperiment)
-library(biocompute)
+# library(biocompute)
 
 args = commandArgs(trailingOnly=TRUE)
 
-arg_select <- grep(pattern = 'human|rat', x = args)
-arg_select <- args[arg_select]
+args <- commandArgs(trailingOnly = TRUE)
+input_dir <- paste0(args[1], 'processed')
+output_dir <- args[1]
+data_dir <- paste0(args[1], 'data')
+# arg_select <- grep(pattern = 'human|rat', x = args)
+arg_select <- args[2]
+
+# input_dir <- '/Users/minoru/Code/bhklab/DataProcessing/ToxicoSet/getTGGATE/processed'
+# output_dir <- '/Users/minoru/Code/bhklab/DataProcessing/ToxicoSet/getTGGATE/'
+# data_dir <- '/Users/minoru/Code/bhklab/DataProcessing/ToxicoSet/getTGGATE/data'
+# arg_select <- 'human'
 
 
 create_phenoData <- function(species=c("Human","Rat"), verbose = TRUE){
@@ -22,7 +31,7 @@ create_phenoData <- function(species=c("Human","Rat"), verbose = TRUE){
   
   #load master phenoData file from TG-GATEs
   #Master phenoData file from TG-GATEs: #14 from https://dbarchive.biosciencedbc.jp/en/open-tggates/download.html
-  all_attribute <- read.csv("/pfs/getTGGATE/Open-tggates_AllAttribute.tsv", sep = "\t")
+  all_attribute <- read.csv(file.path(data_dir, "Open-tggates_AllAttribute.tsv"), sep = "\t")
   all_attribute$SPECIES <- gsub("Rat", "R.norvegicus", all_attribute$SPECIES)
   all_attribute[grep("TNF", all_attribute[,8], useBytes = TRUE),8] <- "TNFa"
   all_attribute[grepl("\x83\xcag/kg", all_attribute[,20], useBytes = TRUE, fixed = T),20] <- "µg/kg"
@@ -44,7 +53,7 @@ create_phenoData <- function(species=c("Human","Rat"), verbose = TRUE){
   drug_curation <- unique(all_attribute[, "COMPOUND_NAME", drop=F]) #get all unique drugs from TG-GATEs in vitro experiments
   drug_curation$unique.drugid <- drug_curation$COMPOUND_NAME #add column for lab drugid mapping; start off with all unique.drugid == tggates.drugid's
   
-  lab_curation <- read.csv("/pfs/getTGGATE/drugswithids.csv", stringsAsFactors = F) #load lab annotation file, pubchem updated
+  lab_curation <- read.csv(file.path(data_dir, "drugswithids.csv"), stringsAsFactors = F) #load lab annotation file, pubchem updated
   
   #exact/case match with lab annotations
   drug_curation$unique.drugid <- sapply(drug_curation$COMPOUND_NAME, function(x) if (tolower(x) %in% tolower(lab_curation$unique.drugid)) (lab_curation[which(tolower(x) == tolower(lab_curation$unique.drugid)),"unique.drugid"]) else x)
@@ -86,7 +95,7 @@ create_phenoData <- function(species=c("Human","Rat"), verbose = TRUE){
   
   #Human
   if (species == "Human"){
-    batch <- read_xlsx("/pfs/getTGGATE/nar-02356-data-e-2014-File006.xlsx", sheet = "Sup_table.2")
+    batch <- read_xlsx(file.path(data_dir, "nar-02356-data-e-2014-File006.xlsx"), sheet = "Sup_table.2")
     batch <- batch[-1,]
     batch <- batch[,c(1,4)]
     names(batch) <- c("BARCODE", "CELL_NAME_TYPE_ID")
@@ -95,7 +104,7 @@ create_phenoData <- function(species=c("Human","Rat"), verbose = TRUE){
     names(all_attribute)[names(all_attribute) == "CELL_NAME_TYPE_ID"] <- "batchid"
     
   } else if (species == "Rat"){ #Rat
-    batch <- read_xlsx("/pfs/getTGGATE/nar-02356-data-e-2014-File006.xlsx", sheet = "Sup_table.3")
+    batch <- read_xlsx(file.path(data_dir, "nar-02356-data-e-2014-File006.xlsx"), sheet = "Sup_table.3")
     batch <- batch[-c(1:3),]
     batch <- batch[,c(1,9)]
     colnames(batch) <- c("drugid", "batchid")
@@ -105,7 +114,7 @@ create_phenoData <- function(species=c("Human","Rat"), verbose = TRUE){
     all_attribute <- subset(all_attribute, all_attribute$ARR_DESIGN == "Rat230_2" & all_attribute$TEST_TYPE == "in vitro")
     all_attribute <- merge(all_attribute, batch, by.x = "COMPOUND_NAME", by.y = "drugid")
     
-    conv <- readRDS("/pfs/getTGGATE/conversions_gentamicin.rds")
+    conv <- readRDS(file.path(data_dir, "conversions_gentamicin.rds"))
     #Include converted doses
     need_conversion <- subset(all_attribute,all_attribute$DOSE_UNIT != "µM",select = -c(DOSE,DOSE_UNIT))
     converted <- merge(need_conversion,conv,by.x="BARCODE",by.y="BARCODE")
@@ -162,11 +171,11 @@ create_exprsData <- function(species=c("Human","Rat"), phenoData, verbose = TRUE
   if (species == "Human"){
     library("hgu133plus2hsensgcdf")
     cdf <- "hgu133plus2hsensgcdf"
-    eset <- readRDS("/pfs/processTGHumArray/eset_Human_2382.rds")
+    eset <- readRDS(file.path(input_dir, "eset_Human_2382.rds"))
   } else {
     library("rat2302rnensgcdf")
     cdf <- "rat2302rnensgcdf"
-    eset <- readRDS("/pfs/processTGRatArray/eset_Rat_3276.rds")
+    eset <- readRDS(file.path(input_dir, "eset_Rat_3276.rds"))
   }
   
   
@@ -418,7 +427,7 @@ getTGGATEs <- function(species=c("Human","Rat"),
   fData(eset) <- fData(eset)[sort(rownames(fData(eset))),]
   stopifnot(all(rownames(fData(eset)) == rownames(exprs(eset))))
   stopifnot(all(rownames(pData(eset)) == colnames(exprs(eset))))
-  saveRDS(eset, "/pfs/out/eset_processsed.rds")
+  # saveRDS(eset, file.path(input_dir, "eset_processsed.rds"))
   if (verbose) {message("Creating summarized experiment object...")}
       
     #new_SE_TG <-  methods::as(eset, Class ="SummarizedExperiment")
@@ -429,7 +438,7 @@ getTGGATEs <- function(species=c("Human","Rat"),
     stopifnot(all(rownames(colData(new_SE_TG)) == rownames(pData(eset))))
     stopifnot(all(rownames(rowData(new_SE_TG)) == rownames(fData(eset))))
     
-      saveRDS(new_SE_TG, "/pfs/out/new_SE_TG.rds")
+      # saveRDS(new_SE_TG, file.path(input_dir, "new_SE_TG.rds"))
     
     if (verbose) {message("Done!")}
   
@@ -488,7 +497,7 @@ if (arg_select == "human"){
 TGGATES_humanldh <- getTGGATEs(species = "Human", type = "LDH")
 #tggates_human_dna <- getTGGATEs(species = "Human", type = "DNA")
 
-saveRDS(TGGATES_humanldh, "/pfs/out/TGGATES_humanldh.rds")
+saveRDS(TGGATES_humanldh, paste0(output_dir, "TGGATES_humanldh.rds"))
 #saveRDS(tggates_human_dna, "QC/TGGATES_humandna.rds")
 
 } else {
@@ -496,278 +505,278 @@ saveRDS(TGGATES_humanldh, "/pfs/out/TGGATES_humanldh.rds")
 TGGATES_ratldh <- getTGGATEs(species = "Rat", type = "LDH")
 #tggates_rat_dna <- getTGGATEs(species = "Rat", type = "DNA")
 
-saveRDS(TGGATES_ratldh, "/pfs/out/TGGATES_ratldh.rds")
+saveRDS(TGGATES_ratldh, paste0(output_dir, "TGGATES_ratldh.rds"))
 #saveRDS(tggates_rat_dna, "QC/TGGATES_ratdna.rds")
 
 }
                                         
                                         
 ####CREATE BIOCOMPUTE OBJECT####
-                                        
-if (arg_select == "human"){
-  
-  name <- "Open TG-GATEs Human"
-  pipeline_input_uri <- c(
-    "ftp://ftp.biosciencedbc.jp/archive/open-tggates/LATEST/Human/in_vitro/",
-    "/pfs/getTGGATE/Open-tggates_AllAttribute.tsv",
-    "/pfs/getTGGATE/drugswithids.csv",
-    "https://github.com/BHKLAB-Pachyderm/getTGGATE/getTG.R"
-  )
-  
-  pipeline_output_uri <- c(
-    "/pfs/processTGHumArray/eset_Human_2382.rds",
-    "/pfs/getTGGATE/Open-tggates_AllAttribute.tsv",
-    "/pfs/getTGGATE/drugswithids.csv",
-    "/pfs/out/TGGATES_humanldh.rds"
-  )
-  
-} else {
-  
-  name <- "Open TG-GATEs Rat"
-  pipeline_input_uri <- c(
-    "ftp://ftp.biosciencedbc.jp/archive/open-tggates/LATEST/Rat/in_vitro/",
-    "/pfs/getTGGATE/Open-tggates_AllAttribute.tsv",
-    "/pfs/getTGGATE/drugswithids.csv",
-    "https://github.com/BHKLAB-Pachyderm/getTGGATE/getTG.R"
-  )
-  
-  pipeline_output_uri <- c(
-    "pfs/processTGRatArray/eset_Rat_3276.rds",
-    "/pfs/getTGGATE/Open-tggates_AllAttribute.tsv",
-    "/pfs/getTGGATE/drugswithids.csv",
-    "/pfs/out/TGGATES_ratldh.rds"
-  )
-  
-}
-
-###########################
-#####Provenance Domain#####
-###########################
-
-#Created and modified dates
-#Sys.setenv(TZ = "EST")
-created <- as.POSIXct(Sys.time(), format = "%Y-%m-%dT%H:%M:%S", tz = "EST")
-modified <- as.POSIXct(Sys.time(), format = "%Y-%m-%dT%H:%M:%S", tz = "EST")
-
-#Contributions
-contributors <- data.frame(
-  "name" = c("Anthony Mammoliti", "Petr Smirnov", "Benjamin Haibe-Kains"),
-  "affiliation" = c(rep("University Health Network", 3)),
-  "email" = c("anthony.mammoliti@uhnresearch.ca", "petr.smirnov@utoronto.ca", "Benjamin.Haibe-Kains@uhnresearch.ca"),
-  "contribution" = c("createdBy","createdBy","authoredBy"),
-  "orcid" = c(NA,NA,"https://orcid.org/0000-0002-7684-0079"),
-  stringsAsFactors = FALSE
-)
-
-#License
-license <- "https://opensource.org/licenses/Apache-2.0"
-
-#Version of biocompute object
-bio_version <- "1.0.0"
-
-#Embargo (none)
-embargo <- c()
-
-#Derived from and obsolete after (none)
-derived_from <- c()
-obsolete_after <- c()
-
-#reviewers (none)
-review <- c()
-
-#compile domain
-provenance <- compose_provenance_v1.3.0(
-  name, bio_version, review, derived_from, obsolete_after,
-  embargo, created, modified, contributors, license
-)
-provenance %>% convert_json()
-
-
-############################
-#####Description Domain#####
-############################
-times_rnaseq <- as.POSIXct("2020-01-20T1:05:13", format = "%Y-%m-%dT%H:%M:%S", tz = "EST")
-#Keywords and platform info
-keywords <- c("Biomedical", "Toxicogenomics", "Cellline", "Drug")
-platform <- c("Pachyderm", "ORCESTRA (orcestra.ca)", "Linux/Ubuntu")
-
-#Metadata for each pipeline step
-pipeline_meta <- data.frame(
-  "step_number" = c("1","2","3"),
-  "name" = c("Microarray processing",
-             "Curated sample and treatment identifier compilation",
-             "Build data object"),
-  "description" = c("Normalization of microarray data", 
-                    "Download of appropriate sample and treatment identifiers from GitHub (curations performed by BHK Lab - http://bhklab.ca)",
-                    "Building of ORCESTRA data object"),
-  "version" = c(1.0,1.0,1.0),
-  stringsAsFactors = FALSE
-)
-
-#Inputs for each pipeline step
-pipeline_input <- data.frame(
-  "step_number" = c("1","2","2","3"),
-  "filename" = c("Raw microarray data",
-                 "Sample annotation data",
-                 "Treatment annotations",
-                 "Script for data object generation"),
-  "uri" = pipeline_input_uri,
-  "access_time" = c(times_rnaseq,created,created,created),
-  stringsAsFactors = FALSE
-)
-
-
-#Outputs for each pipeline step
-pipeline_output <- data.frame(
-  "step_number" = c("1","2","2","3"),
-  "filename" = c("Processed microarray data", 
-                 "Downloaded sample annotations",
-                 "Downloaded treatment annotations",
-                 "Data object"),
-  "uri" = pipeline_output_uri,
-  "access_time" = c(times_rnaseq,created,created,created),
-  stringsAsFactors = FALSE
-)
-
-#xref (none)
-xref <- c()
-
-#pipeline prereq (none)
-pipeline_prerequisite <- c()
-
-#compile domain
-description <- compose_description_v1.3.0(
-  keywords, xref, platform,
-  pipeline_meta, pipeline_prerequisite, pipeline_input, pipeline_output
-)
-description %>% convert_json()
-
-
-############################
-######Execution Domain######
-############################
-
-script <- c()
-script_driver <- c()
-
-#software/tools and its versions used for data object creation
-software_prerequisites <- data.frame(
-  "name" = c("Pachyderm", "Docker Image"),
-  "version" = c("1.9.3", "v2"),
-  "uri" = c(
-    "https://www.pachyderm.com", "https://hub.docker.com/r/bhklab/toxicogx"
-  ),
-  stringsAsFactors = FALSE
-)
-
-software_prerequisites[,"access_time"] <- rep(NA, length(software_prerequisites$name))
-software_prerequisites[,"sha1_chksum"] <- rep(NA, length(software_prerequisites$name))
-
-external_data_endpoints <- c()
-environment_variables <- c()
-
-execution <- compose_execution_v1.3.0(
-  script, script_driver, software_prerequisites, external_data_endpoints, environment_variables
-)
-execution %>% convert_json()
-
-
-############################
-######Extension Domain######
-############################
-
-#repo of scripts/data used
-scm_repository <- data.frame("extension_schema"= c("https://github.com/BHKLAB-Pachyderm"))
-scm_type <- "git"
-scm_commit <- c()
-scm_path <- c()
-scm_preview <- c()
-
-scm <- compose_scm(scm_repository, scm_type, scm_commit, scm_path, scm_preview)
-scm %>% convert_json()
-
-extension <- compose_extension_v1.3.0(scm)
-extension %>% convert_json()
-
-############################
-######Parametric Domain#####
-############################
-
-df_parametric <- data.frame(
-  "param" = c(),
-  "value" = c(),
-  "step" = c(),
-  stringsAsFactors = FALSE
-)
-
-parametric <- compose_parametric_v1.3.0(df_parametric)
-parametric %>% convert_json()
-
-
-
-############################
-######Usability Domain######
-############################
-
-#usability of our data objects
-text <- c(
-  paste0("Pipeline for creating ", name, " data object through ORCESTRA (orcestra.ca), a platform for the reproducible and transparent processing, sharing, and analysis of biomedical data.")
-)
-
-usability <- compose_usability_v1.3.0(text)
-usability %>% convert_json()
-
-
-######################
-######I/O Domain######
-######################
-
-input_subdomain <- data.frame(
-  "filename" = c("Raw Microarray data",
-                 "Sample annotation data",
-                 "Treatment annotations",
-                 "Script for data object generation"),
-  "uri" = pipeline_input_uri,
-  "access_time" = c(times_rnaseq,created,created,created),
-  stringsAsFactors = FALSE
-)
-
-output_subdomain <- data.frame(
-  "mediatype" = c("RDS", "tsv", "csv", "RDS"),
-  "uri" = pipeline_output_uri,
-  "access_time" = c(times_rnaseq,created,created,created),
-  stringsAsFactors = FALSE
-)
-
-io <- compose_io_v1.3.0(input_subdomain, output_subdomain)
-io %>% convert_json()
-
-
-########################
-######Error Domain######
-########################
-
-empirical <- c()
-algorithmic <- c()
-
-error <- compose_error(empirical, algorithmic)
-error %>% convert_json()
-
-
-####Retrieve Top Level Fields####
-tlf <- compose_tlf_v1.3.0(
-  provenance, usability, extension, description,
-  execution, parametric, io, error
-)
-tlf %>% convert_json()
-
-
-####Complete BCO####
-
-bco <- biocompute::compose_v1.3.0(
-  tlf, provenance, usability, extension, description,
-  execution, parametric, io, error
-)
-bco %>% convert_json() %>% export_json(paste0("/pfs/out/",name,"_BCO.json")) %>% validate_checksum()                                        
+#                                         
+# if (arg_select == "human"){
+#   
+#   name <- "Open TG-GATEs Human"
+#   pipeline_input_uri <- c(
+#     "ftp://ftp.biosciencedbc.jp/archive/open-tggates/LATEST/Human/in_vitro/",
+#     "/pfs/getTGGATE/Open-tggates_AllAttribute.tsv",
+#     "/pfs/getTGGATE/drugswithids.csv",
+#     "https://github.com/BHKLAB-Pachyderm/getTGGATE/getTG.R"
+#   )
+#   
+#   pipeline_output_uri <- c(
+#     "/pfs/processTGHumArray/eset_Human_2382.rds",
+#     "/pfs/getTGGATE/Open-tggates_AllAttribute.tsv",
+#     "/pfs/getTGGATE/drugswithids.csv",
+#     "/pfs/out/TGGATES_humanldh.rds"
+#   )
+#   
+# } else {
+#   
+#   name <- "Open TG-GATEs Rat"
+#   pipeline_input_uri <- c(
+#     "ftp://ftp.biosciencedbc.jp/archive/open-tggates/LATEST/Rat/in_vitro/",
+#     "/pfs/getTGGATE/Open-tggates_AllAttribute.tsv",
+#     "/pfs/getTGGATE/drugswithids.csv",
+#     "https://github.com/BHKLAB-Pachyderm/getTGGATE/getTG.R"
+#   )
+#   
+#   pipeline_output_uri <- c(
+#     "pfs/processTGRatArray/eset_Rat_3276.rds",
+#     "/pfs/getTGGATE/Open-tggates_AllAttribute.tsv",
+#     "/pfs/getTGGATE/drugswithids.csv",
+#     "/pfs/out/TGGATES_ratldh.rds"
+#   )
+#   
+# }
+# 
+# ###########################
+# #####Provenance Domain#####
+# ###########################
+# 
+# #Created and modified dates
+# #Sys.setenv(TZ = "EST")
+# created <- as.POSIXct(Sys.time(), format = "%Y-%m-%dT%H:%M:%S", tz = "EST")
+# modified <- as.POSIXct(Sys.time(), format = "%Y-%m-%dT%H:%M:%S", tz = "EST")
+# 
+# #Contributions
+# contributors <- data.frame(
+#   "name" = c("Anthony Mammoliti", "Petr Smirnov", "Benjamin Haibe-Kains"),
+#   "affiliation" = c(rep("University Health Network", 3)),
+#   "email" = c("anthony.mammoliti@uhnresearch.ca", "petr.smirnov@utoronto.ca", "Benjamin.Haibe-Kains@uhnresearch.ca"),
+#   "contribution" = c("createdBy","createdBy","authoredBy"),
+#   "orcid" = c(NA,NA,"https://orcid.org/0000-0002-7684-0079"),
+#   stringsAsFactors = FALSE
+# )
+# 
+# #License
+# license <- "https://opensource.org/licenses/Apache-2.0"
+# 
+# #Version of biocompute object
+# bio_version <- "1.0.0"
+# 
+# #Embargo (none)
+# embargo <- c()
+# 
+# #Derived from and obsolete after (none)
+# derived_from <- c()
+# obsolete_after <- c()
+# 
+# #reviewers (none)
+# review <- c()
+# 
+# #compile domain
+# provenance <- compose_provenance_v1.3.0(
+#   name, bio_version, review, derived_from, obsolete_after,
+#   embargo, created, modified, contributors, license
+# )
+# provenance %>% convert_json()
+# 
+# 
+# ############################
+# #####Description Domain#####
+# ############################
+# times_rnaseq <- as.POSIXct("2020-01-20T1:05:13", format = "%Y-%m-%dT%H:%M:%S", tz = "EST")
+# #Keywords and platform info
+# keywords <- c("Biomedical", "Toxicogenomics", "Cellline", "Drug")
+# platform <- c("Pachyderm", "ORCESTRA (orcestra.ca)", "Linux/Ubuntu")
+# 
+# #Metadata for each pipeline step
+# pipeline_meta <- data.frame(
+#   "step_number" = c("1","2","3"),
+#   "name" = c("Microarray processing",
+#              "Curated sample and treatment identifier compilation",
+#              "Build data object"),
+#   "description" = c("Normalization of microarray data", 
+#                     "Download of appropriate sample and treatment identifiers from GitHub (curations performed by BHK Lab - http://bhklab.ca)",
+#                     "Building of ORCESTRA data object"),
+#   "version" = c(1.0,1.0,1.0),
+#   stringsAsFactors = FALSE
+# )
+# 
+# #Inputs for each pipeline step
+# pipeline_input <- data.frame(
+#   "step_number" = c("1","2","2","3"),
+#   "filename" = c("Raw microarray data",
+#                  "Sample annotation data",
+#                  "Treatment annotations",
+#                  "Script for data object generation"),
+#   "uri" = pipeline_input_uri,
+#   "access_time" = c(times_rnaseq,created,created,created),
+#   stringsAsFactors = FALSE
+# )
+# 
+# 
+# #Outputs for each pipeline step
+# pipeline_output <- data.frame(
+#   "step_number" = c("1","2","2","3"),
+#   "filename" = c("Processed microarray data", 
+#                  "Downloaded sample annotations",
+#                  "Downloaded treatment annotations",
+#                  "Data object"),
+#   "uri" = pipeline_output_uri,
+#   "access_time" = c(times_rnaseq,created,created,created),
+#   stringsAsFactors = FALSE
+# )
+# 
+# #xref (none)
+# xref <- c()
+# 
+# #pipeline prereq (none)
+# pipeline_prerequisite <- c()
+# 
+# #compile domain
+# description <- compose_description_v1.3.0(
+#   keywords, xref, platform,
+#   pipeline_meta, pipeline_prerequisite, pipeline_input, pipeline_output
+# )
+# description %>% convert_json()
+# 
+# 
+# ############################
+# ######Execution Domain######
+# ############################
+# 
+# script <- c()
+# script_driver <- c()
+# 
+# #software/tools and its versions used for data object creation
+# software_prerequisites <- data.frame(
+#   "name" = c("Pachyderm", "Docker Image"),
+#   "version" = c("1.9.3", "v2"),
+#   "uri" = c(
+#     "https://www.pachyderm.com", "https://hub.docker.com/r/bhklab/toxicogx"
+#   ),
+#   stringsAsFactors = FALSE
+# )
+# 
+# software_prerequisites[,"access_time"] <- rep(NA, length(software_prerequisites$name))
+# software_prerequisites[,"sha1_chksum"] <- rep(NA, length(software_prerequisites$name))
+# 
+# external_data_endpoints <- c()
+# environment_variables <- c()
+# 
+# execution <- compose_execution_v1.3.0(
+#   script, script_driver, software_prerequisites, external_data_endpoints, environment_variables
+# )
+# execution %>% convert_json()
+# 
+# 
+# ############################
+# ######Extension Domain######
+# ############################
+# 
+# #repo of scripts/data used
+# scm_repository <- data.frame("extension_schema"= c("https://github.com/BHKLAB-Pachyderm"))
+# scm_type <- "git"
+# scm_commit <- c()
+# scm_path <- c()
+# scm_preview <- c()
+# 
+# scm <- compose_scm(scm_repository, scm_type, scm_commit, scm_path, scm_preview)
+# scm %>% convert_json()
+# 
+# extension <- compose_extension_v1.3.0(scm)
+# extension %>% convert_json()
+# 
+# ############################
+# ######Parametric Domain#####
+# ############################
+# 
+# df_parametric <- data.frame(
+#   "param" = c(),
+#   "value" = c(),
+#   "step" = c(),
+#   stringsAsFactors = FALSE
+# )
+# 
+# parametric <- compose_parametric_v1.3.0(df_parametric)
+# parametric %>% convert_json()
+# 
+# 
+# 
+# ############################
+# ######Usability Domain######
+# ############################
+# 
+# #usability of our data objects
+# text <- c(
+#   paste0("Pipeline for creating ", name, " data object through ORCESTRA (orcestra.ca), a platform for the reproducible and transparent processing, sharing, and analysis of biomedical data.")
+# )
+# 
+# usability <- compose_usability_v1.3.0(text)
+# usability %>% convert_json()
+# 
+# 
+# ######################
+# ######I/O Domain######
+# ######################
+# 
+# input_subdomain <- data.frame(
+#   "filename" = c("Raw Microarray data",
+#                  "Sample annotation data",
+#                  "Treatment annotations",
+#                  "Script for data object generation"),
+#   "uri" = pipeline_input_uri,
+#   "access_time" = c(times_rnaseq,created,created,created),
+#   stringsAsFactors = FALSE
+# )
+# 
+# output_subdomain <- data.frame(
+#   "mediatype" = c("RDS", "tsv", "csv", "RDS"),
+#   "uri" = pipeline_output_uri,
+#   "access_time" = c(times_rnaseq,created,created,created),
+#   stringsAsFactors = FALSE
+# )
+# 
+# io <- compose_io_v1.3.0(input_subdomain, output_subdomain)
+# io %>% convert_json()
+# 
+# 
+# ########################
+# ######Error Domain######
+# ########################
+# 
+# empirical <- c()
+# algorithmic <- c()
+# 
+# error <- compose_error(empirical, algorithmic)
+# error %>% convert_json()
+# 
+# 
+# ####Retrieve Top Level Fields####
+# tlf <- compose_tlf_v1.3.0(
+#   provenance, usability, extension, description,
+#   execution, parametric, io, error
+# )
+# tlf %>% convert_json()
+# 
+# 
+# ####Complete BCO####
+# 
+# bco <- biocompute::compose_v1.3.0(
+#   tlf, provenance, usability, extension, description,
+#   execution, parametric, io, error
+# )
+# bco %>% convert_json() %>% export_json(paste0("/pfs/out/",name,"_BCO.json")) %>% validate_checksum()                                        
                                         
                                         

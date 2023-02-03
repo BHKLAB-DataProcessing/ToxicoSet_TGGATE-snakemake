@@ -1,0 +1,43 @@
+import pandas as pd
+from snakemake.remote.S3 import RemoteProvider as S3RemoteProvider
+# S3 = S3RemoteProvider(
+#     access_key_id=config["key"],
+#     secret_access_key=config["secret"],
+#     host=config["host"],
+#     stay_on_remote=False
+# )
+
+prefix = config["prefix"]
+
+rule get_tset:
+    input:
+        prefix + "processed/eset_Human_2382.rds",
+        prefix + "data/Open-tggates_AllAttribute.tsv",
+        prefix + "data/nar-02356-data-e-2014-File006.xlsx",
+        prefix + "data/conversions_gentamicin.rds",
+        prefix + "data/conversions_gentamicin.rds"
+    output:
+        prefix + "TGGATES_humanldh.rds"
+    shell:
+        """
+        Rscript {prefix}scripts/getTG.R {prefix} human
+        """
+
+rule process_data:
+    input:
+        prefix + "download/TGGATES_human_CEL.tar.gz"
+    output:
+        prefix + "processed/eset_Human_2382.rds"
+    shell:
+        """
+        Rscript {prefix}scripts/processTGGATEarray_human.R {prefix}
+        """
+
+
+rule download_data:
+    output:
+        prefix + "download/TGGATES_human_CEL.tar.gz"
+    shell:
+        """
+        Rscript {prefix}scripts/downloadTGGATEarray_human.R {prefix}download
+        """
