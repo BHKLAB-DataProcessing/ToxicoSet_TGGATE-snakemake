@@ -1,46 +1,45 @@
-import pandas as pd
 from snakemake.remote.S3 import RemoteProvider as S3RemoteProvider
-# S3 = S3RemoteProvider(
-#     access_key_id=config["key"],
-#     secret_access_key=config["secret"],
-#     host=config["host"],
-#     stay_on_remote=False
-# )
+S3 = S3RemoteProvider(
+    access_key_id=config["key"],
+    secret_access_key=config["secret"],
+    host=config["host"],
+    stay_on_remote=False
+)
 
 prefix = config["prefix"]
 
 rule get_tset:
     input:
-        prefix + "processed/eset_Rat_3276.rds",
-        prefix + "data/Open-tggates_AllAttribute.tsv",
-        prefix + "data/nar-02356-data-e-2014-File006.xlsx",
-        prefix + "data/conversions_gentamicin.rds"
+        S3.remote(prefix + "processed/eset_Rat_3276.rds"),
+        S3.remote(prefix + "data/Open-tggates_AllAttribute.tsv"),
+        S3.remote(prefix + "data/nar-02356-data-e-2014-File006.xlsx"),
+        S3.remote(prefix + "data/conversions_gentamicin.rds")
     output:
-        prefix + "TGGATES_ratldh.rds"
+        prefix + "ToxicoSet_TGGATES_ratldh.rds"
     shell:
         """
-        Rscript {prefix}scripts/getTG.R {prefix} rat
+        Rscript scripts/getTG.R {prefix} rat
         """
 
 rule process_data:
     input:
-        prefix + "download/TGGATES_rat_CEL.tar.gz",
-        prefix + "data/rat_cel.csv"
+        S3.remote(prefix + "download/TGGATES_rat_CEL.tar.gz"),
+        S3.remote(prefix + "data/rat_cel.csv")
     output:
-        prefix + "processed/eset_Rat_3276.rds"
+        S3.remote(prefix + "processed/eset_Rat_3276.rds")
     shell:
         """
-        Rscript {prefix}scripts/processTGGATEarray_rat.R {prefix}
+        Rscript scripts/processTGGATEarray_rat.R {prefix}
         """
 
 
 rule download_data:
     output:
-        prefix + "download/TGGATES_rat_CEL.tar.gz",
-        prefix + "data/Open-tggates_AllAttribute.tsv",
-        prefix + "data/nar-02356-data-e-2014-File006.xlsx",
-        prefix + "data/conversions_gentamicin.rds",
-        prefix + "data/rat_cel.csv"
+        S3.remote(prefix + "download/TGGATES_rat_CEL.tar.gz"),
+        S3.remote(prefix + "data/Open-tggates_AllAttribute.tsv"),
+        S3.remote(prefix + "data/nar-02356-data-e-2014-File006.xlsx"),
+        S3.remote(prefix + "data/conversions_gentamicin.rds"),
+        S3.remote(prefix + "data/rat_cel.csv")
     shell:
         """
         wget 'https://github.com/BHKLAB-DataProcessing/getTGGATE/raw/main/data/Open-tggates_AllAttribute.tsv' \
@@ -53,5 +52,5 @@ rule download_data:
             -O {prefix}data/nar-02356-data-e-2014-File006.xlsx
         wget 'https://github.com/BHKLAB-DataProcessing/getTGGATE/raw/main/data/rat_cel.csv' \
             -O {prefix}data/rat_cel.csv
-        Rscript {prefix}scripts/downloadTGGATEarray_rat.R {prefix}download
+        Rscript scripts/downloadTGGATEarray_rat.R {prefix}download
         """

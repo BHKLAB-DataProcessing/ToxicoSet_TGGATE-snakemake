@@ -494,19 +494,19 @@ getTGGATEs <- function(species=c("Human","Rat"),
 }
 
 if (arg_select == "human"){
-TGGATES_humanldh <- getTGGATEs(species = "Human", type = "LDH")
-#tggates_human_dna <- getTGGATEs(species = "Human", type = "DNA")
+  TGGATES_humanldh <- getTGGATEs(species = "Human", type = "LDH")
+  #tggates_human_dna <- getTGGATEs(species = "Human", type = "DNA")
 
-saveRDS(TGGATES_humanldh, paste0(output_dir, "TGGATES_humanldh.rds"))
-#saveRDS(tggates_human_dna, "QC/TGGATES_humandna.rds")
+  saveRDS(TGGATES_humanldh, paste0(output_dir, "ToxicoSet_TGGATES_humanldh.rds"))
+  #saveRDS(tggates_human_dna, "QC/TGGATES_humandna.rds")
 
 } else {
 
-TGGATES_ratldh <- getTGGATEs(species = "Rat", type = "LDH")
-#tggates_rat_dna <- getTGGATEs(species = "Rat", type = "DNA")
+  TGGATES_ratldh <- getTGGATEs(species = "Rat", type = "LDH")
+  #tggates_rat_dna <- getTGGATEs(species = "Rat", type = "DNA")
 
-saveRDS(TGGATES_ratldh, paste0(output_dir, "TGGATES_ratldh.rds"))
-#saveRDS(tggates_rat_dna, "QC/TGGATES_ratdna.rds")
+  saveRDS(TGGATES_ratldh, paste0(output_dir, "ToxicoSet_TGGATES_ratldh.rds"))
+  #saveRDS(tggates_rat_dna, "QC/TGGATES_ratdna.rds")
 
 }
                                         
