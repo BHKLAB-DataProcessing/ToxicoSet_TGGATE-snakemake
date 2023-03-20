@@ -19,6 +19,7 @@ output_dir <- args[1]
 data_dir <- paste0(args[1], 'data')
 # arg_select <- grep(pattern = 'human|rat', x = args)
 arg_select <- args[2]
+filename <- args[3]
 
 # input_dir <- '/Users/minoru/Code/bhklab/DataProcessing/ToxicoSet/getTGGATE/processed'
 # output_dir <- '/Users/minoru/Code/bhklab/DataProcessing/ToxicoSet/getTGGATE/'
@@ -505,7 +506,7 @@ if (arg_select == "human"){
   TGGATES_ratldh <- getTGGATEs(species = "Rat", type = "LDH")
   #tggates_rat_dna <- getTGGATEs(species = "Rat", type = "DNA")
 
-  saveRDS(TGGATES_ratldh, paste0(output_dir, "ToxicoSet_TGGATES_ratldh.rds"))
+  saveRDS(TGGATES_ratldh, paste0(output_dir, filename))
   #saveRDS(tggates_rat_dna, "QC/TGGATES_ratdna.rds")
 
 }

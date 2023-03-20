@@ -7,6 +7,7 @@ S3 = S3RemoteProvider(
 )
 
 prefix = config["prefix"]
+filename = config["filename"]
 
 rule get_tset:
     input:
@@ -15,10 +16,10 @@ rule get_tset:
         S3.remote(prefix + "data/nar-02356-data-e-2014-File006.xlsx"),
         S3.remote(prefix + "data/conversions_gentamicin.rds")
     output:
-        prefix + "ToxicoSet_TGGATES_humanldh.rds"
+        S3.remote(prefix + filename)
     shell:
         """
-        Rscript scripts/getTG.R {prefix} human
+        Rscript scripts/getTG.R {prefix} human {filename}
         """
 
 rule process_data:
