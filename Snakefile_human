@@ -14,7 +14,8 @@ rule get_tset:
         S3.remote(prefix + "processed/eset_Human_2382.rds"),
         S3.remote(prefix + "data/Open-tggates_AllAttribute.tsv"),
         S3.remote(prefix + "data/nar-02356-data-e-2014-File006.xlsx"),
-        S3.remote(prefix + "data/conversions_gentamicin.rds")
+        S3.remote(prefix + "data/conversions_gentamicin.rds"),
+        S3.remote(prefix + "data/drugswithids.csv")
     output:
         S3.remote(prefix + filename)
     shell:
@@ -38,7 +39,8 @@ rule download_data:
         S3.remote(prefix + "download/TGGATES_human_CEL.tar.gz"),
         S3.remote(prefix + "data/Open-tggates_AllAttribute.tsv"),
         S3.remote(prefix + "data/nar-02356-data-e-2014-File006.xlsx"),
-        S3.remote(prefix + "data/conversions_gentamicin.rds")
+        S3.remote(prefix + "data/conversions_gentamicin.rds"),
+        S3.remote(prefix + "data/drugswithids.csv")
     shell:
         """
         wget 'https://github.com/BHKLAB-DataProcessing/getTGGATE/raw/main/data/Open-tggates_AllAttribute.tsv' \
